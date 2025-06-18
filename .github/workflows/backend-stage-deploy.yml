@@ -32,13 +32,13 @@ jobs:
   # ---- 2. Build e Push da Imagem Docker ----
   build-and-push:
     name: 'Build and Push Docker Image'
-    needs: terraform # Depende do job do Terraform
+    needs: terraform
     runs-on: ubuntu-latest
     
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
-      GCP_REGION: us-central1 # Mesma região do Terraform
-      ARTIFACT_REPO: app-images # Nome do repositório no Artifact Registry
+      GCP_REGION: us-central1
+      ARTIFACT_REPO: app-images
       IMAGE_NAME: backend
 
     steps:
@@ -53,11 +53,10 @@ jobs:
     - name: Configure Docker
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
+    # --- PASSO CORRIGIDO ---
     - name: Build Docker image
-      # Adicione esta linha para mudar o diretório de trabalho
-      working-directory: ./backend 
-      run: |
-        # Agora que estamos dentro da pasta 'backend', o contexto do build é o diretório atual "."
+      working-directory: ./backend  # <-- Propriedade do passo
+      run: |                        # <-- Propriedade no mesmo nível
         docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
         
     - name: Push Docker image
