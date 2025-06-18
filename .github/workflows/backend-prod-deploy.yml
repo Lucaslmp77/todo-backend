@@ -3,9 +3,7 @@ name: Deploy Backend to PRODUCTION
 on:
   push:
     branches:
-      - main # <<< MUDANÇA: Gatilho para a branch de produção
-    paths:
-      - 'backend/**'
+      - main
 
 jobs:
   terraform:
