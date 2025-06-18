@@ -1,57 +1,55 @@
-name: Deploy Backend to STAGE
+name: Deploy Backend to PRODUCTION
 
 on:
   push:
     branches:
-      - develop # Ou 'develop' se preferir
+      - main # <<< MUDANÇA: Gatilho para a branch de produção
     paths:
-      - 'backend/**' # Gatilho apenas se houver mudanças no backend
+      - 'backend/**'
 
 jobs:
-  # ---- 1. Provisiona a Infraestrutura com Terraform ----
   terraform:
-    name: 'Terraform Apply'
+    name: 'Terraform Apply PRODUCTION'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud
-      uses: 'google-github-actions/auth@v1'
+      uses: 'google-github-actions/auth@v2'
       with:
-        credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
+        credentials_json: '${{ secrets.GCP_CREDENTIALS_PROD }}' # <<< MUDANÇA: Segredo de produção
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
 
     - name: Terraform Init
       run: terraform init
       working-directory: ./infra
 
     - name: Terraform Apply
-      run: terraform apply -var-file="stage.tfvars" -auto-approve
+      run: terraform apply -var-file="prod.tfvars" -auto-approve # <<< MUDANÇA: Arquivo de variáveis de produção
       working-directory: ./infra
 
-  # ---- 2. Build e Push da Imagem Docker ----
   build-and-push:
-    name: 'Build and Push Docker Image'
-    needs: terraform # Depende do job do Terraform
+    name: 'Build and Push Backend Image'
+    needs: terraform
     runs-on: ubuntu-latest
     
     env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
-      GCP_REGION: us-central1 # Mesma região do Terraform
-      ARTIFACT_REPO: app-images # Nome do repositório no Artifact Registry
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_PROD }} # <<< MUDANÇA: Segredo de produção
+      GCP_REGION: us-central1
+      ARTIFACT_REPO: app-images
       IMAGE_NAME: backend
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud
-      uses: 'google-github-actions/auth@v1'
+      uses: 'google-github-actions/auth@v2'
       with:
-        credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
+        credentials_json: '${{ secrets.GCP_CREDENTIALS_PROD }}' # <<< MUDANÇA: Segredo de produção
         
     - name: Configure Docker
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
@@ -59,47 +57,43 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ./backend
-        
+
     - name: Push Docker image
       run: |
         docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  # ---- 3. Deploy no GKE ----
   deploy:
-    name: 'Deploy to GKE'
-    needs: build-and-push # Depende do build
+    name: 'Deploy Backend to GKE PRODUCTION'
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_PROD }} # <<< MUDANÇA: Segredo de produção
       GCP_REGION: us-central1
-      GKE_CLUSTER: gke-stage-cluster # Nome do cluster definido no .tfvars
+      GKE_CLUSTER: gke-prod-cluster # <<< MUDANÇA: Cluster de produção
       ARTIFACT_REPO: app-images
       IMAGE_NAME: backend
       
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud
-      uses: 'google-github-actions/auth@v1'
+      uses: 'google-github-actions/auth@v2'
       with:
-        credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
+        credentials_json: '${{ secrets.GCP_CREDENTIALS_PROD }}' # <<< MUDANÇA: Segredo de produção
 
     - name: Get GKE credentials
       run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.GCP_REGION }}
 
-    # ---- 4. Instalação do Prometheus e Grafana ----
-    - name: Add Prometheus Helm Repo
-      run: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-
     - name: Install/Upgrade Prometheus Stack
       run: |
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
         helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
           --namespace monitoring --create-namespace \
-          --wait # Espera a instalação terminar
-
-    # ---- 5. Deploy da Aplicação ----
+          --wait
+          
     - name: Update Kubernetes Manifest with new Image
       run: |
         sed -i 's|IMAGE_PLACEHOLDER|${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|g' kubernetes/backend/deployment.yaml
@@ -107,6 +101,5 @@ jobs:
     - name: Apply Kubernetes Manifests
       run: kubectl apply -f kubernetes/backend/
 
-    # ---- 6. Validação do Deploy ----
     - name: Verify deployment
       run: kubectl rollout status deployment/backend-deployment
