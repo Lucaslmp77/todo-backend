@@ -54,8 +54,11 @@ jobs:
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
     - name: Build Docker image
+      # Adicione esta linha para mudar o diretório de trabalho
+      working-directory: ./backend 
       run: |
-        docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ./backend
+        # Agora que estamos dentro da pasta 'backend', o contexto do build é o diretório atual "."
+        docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
         
     - name: Push Docker image
       run: |
