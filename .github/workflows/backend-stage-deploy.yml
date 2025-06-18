@@ -3,10 +3,7 @@ name: Deploy Backend to STAGE
 on:
   push:
     branches:
-      - develop # Ou 'develop' se preferir
-    paths:
-      - 'backend/**' # Gatilho apenas se houver mudanças no backend
-
+      - develop
 jobs:
   # ---- 1. Provisiona a Infraestrutura com Terraform
   terraform:
