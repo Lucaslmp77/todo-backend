@@ -10,6 +10,6 @@ variable "region" {
 }
 
 variable "cluster_name" {
-  description = "Nome do cluster GKE."
+  description = "cluster mensal"
   type        = string
 }

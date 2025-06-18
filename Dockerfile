@@ -1,15 +1,17 @@
-# Estágio de Build
 FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build # Comando para transpilar seu TypeScript para JavaScript
+RUN npx prisma generate
+RUN npm run build
 
-# Estágio de Produção
 FROM node:18-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --only=production
-COPY --from=builder /app/dist ./dist # Copia o JS transpilado
-CMD ["node", "dist/server.js"] # Adapte para o seu arquivo de entrada
+COPY --from=builder /app/dist ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY start.sh ./
+RUN chmod +x start.sh
+EXPOSE 3000
+CMD ["./start.sh"]
