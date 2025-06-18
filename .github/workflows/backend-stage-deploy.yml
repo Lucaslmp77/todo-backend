@@ -8,7 +8,7 @@ on:
       - 'backend/**' # Gatilho apenas se houver mudanças no backend
 
 jobs:
-  # ---- 1. Provisiona a Infraestrutura com Terraform ----
+  # ---- 1. Provisiona a Infraestrutura com Terraform
   terraform:
     name: 'Terraform Apply'
     runs-on: ubuntu-latest
