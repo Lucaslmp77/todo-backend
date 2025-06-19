@@ -32,13 +32,13 @@ jobs:
   # ---- 2. Build e Push da Imagem Docker ----
   build-and-push:
     name: 'Build and Push Docker Image'
-    needs: terraform
+    needs: terraform # Depende do job do Terraform
     runs-on: ubuntu-latest
     
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
-      GCP_REGION: us-central1
-      ARTIFACT_REPO: app-images
+      GCP_REGION: us-central1 # Mesma região do Terraform
+      ARTIFACT_REPO: app-images # Nome do repositório no Artifact Registry
       IMAGE_NAME: backend
 
     steps:
@@ -55,8 +55,8 @@ jobs:
 
     # --- PASSO CORRIGIDO ---
     - name: Build Docker image
-      working-directory: ./backend  # <-- Propriedade do passo
-      run: |                        # <-- Propriedade no mesmo nível
+      working-directory: ./backend
+      run: |
         docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
         
     - name: Push Docker image
