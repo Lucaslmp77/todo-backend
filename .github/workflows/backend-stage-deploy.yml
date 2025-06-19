@@ -32,13 +32,13 @@ jobs:
   # ---- 2. Build e Push da Imagem Docker ----
   build-and-push:
     name: 'Build and Push Docker Image'
-    needs: terraform # Depende do job do Terraform
+    needs: terraform
     runs-on: ubuntu-latest
     
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
-      GCP_REGION: us-central1 # Mesma região do Terraform
-      ARTIFACT_REPO: app-images # Nome do repositório no Artifact Registry
+      GCP_REGION: us-central1
+      ARTIFACT_REPO: app-images
       IMAGE_NAME: backend
 
     steps:
@@ -53,7 +53,19 @@ jobs:
     - name: Configure Docker
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
-    # --- PASSO CORRIGIDO ---
+    # --- PLANO B: PASSO DE DEPURAÇÃO ADICIONADO AQUI ---
+    - name: VERIFICAR ESTRUTURA DE ARQUIVOS
+      run: |
+        echo "=========================================================="
+        echo "Iniciando verificação de arquivos no diretório de trabalho..."
+        echo "Diretório atual:"
+        pwd
+        echo ""
+        echo "Conteúdo do diretório (listagem recursiva):"
+        ls -R
+        echo "=========================================================="
+
+    # --- Passo que estava falhando ---
     - name: Build Docker image
       working-directory: ./backend
       run: |
