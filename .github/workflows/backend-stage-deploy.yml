@@ -53,21 +53,10 @@ jobs:
     - name: Configure Docker
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
-    # --- PLANO B: PASSO DE DEPURAÇÃO ADICIONADO AQUI ---
-    - name: VERIFICAR ESTRUTURA DE ARQUIVOS
-      run: |
-        echo "=========================================================="
-        echo "Iniciando verificação de arquivos no diretório de trabalho..."
-        echo "Diretório atual:"
-        pwd
-        echo ""
-        echo "Conteúdo do diretório (listagem recursiva):"
-        ls -R
-        echo "=========================================================="
-
-    # --- Passo que estava falhando ---
+    # --- PASSO FINAL CORRIGIDO ---
+    # A linha 'working-directory' foi REMOVIDA
+    # O comando agora executa na raiz do projeto, que é o lugar certo.
     - name: Build Docker image
-      working-directory: ./backend
       run: |
         docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
         
