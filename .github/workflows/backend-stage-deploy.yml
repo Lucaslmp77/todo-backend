@@ -53,9 +53,6 @@ jobs:
     - name: Configure Docker
       run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
-    # --- PASSO FINAL CORRIGIDO ---
-    # A linha 'working-directory' foi REMOVIDA
-    # O comando agora executa na raiz do projeto, que é o lugar certo.
     - name: Build Docker image
       run: |
         docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
@@ -86,11 +83,17 @@ jobs:
       with:
         credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
 
-    # --- CORREÇÃO: Usando apt-get conforme sugerido pelo erro ---
-    - name: Install gke-gcloud-auth-plugin
+    # --- PLANO C: Usando o script de instalação oficial do Google Cloud ---
+    - name: Install Google Cloud SDK and Auth Plugin
       run: |
-        sudo apt-get update
-        sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
+        # 1. Baixa e executa o script de instalação oficial do Google Cloud SDK de forma não-interativa.
+        curl -sS https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-users-rc-path=false
+
+        # 2. Adiciona o gcloud (que acabamos de instalar) ao PATH para os próximos passos deste job.
+        echo "/home/runner/google-cloud-sdk/bin" >> $GITHUB_PATH
+
+        # 3. Instala o componente gke-gcloud-auth-plugin. Agora vai funcionar.
+        gcloud components install gke-gcloud-auth-plugin --quiet
 
     - name: Get GKE credentials
       run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.GCP_REGION }}
