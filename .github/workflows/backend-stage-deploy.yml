@@ -67,13 +67,13 @@ jobs:
   # ---- 3. Deploy no GKE ----
   deploy:
     name: 'Deploy to GKE'
-    needs: build-and-push # Depende do build
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_STAGE }}
       GCP_REGION: us-central1
-      GKE_CLUSTER: gke-stage-cluster # Nome do cluster definido no .tfvars
+      GKE_CLUSTER: gke-stage-cluster
       ARTIFACT_REPO: app-images
       IMAGE_NAME: backend
       
@@ -85,6 +85,10 @@ jobs:
       uses: 'google-github-actions/auth@v1'
       with:
         credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
+
+    # --- ADICIONE ESTE PASSO PARA INSTALAR O PLUGIN DE AUTENTICAÇÃO ---
+    - name: Install gke-gcloud-auth-plugin
+      run: gcloud components install gke-gcloud-auth-plugin --quiet
 
     - name: Get GKE credentials
       run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.GCP_REGION }}
