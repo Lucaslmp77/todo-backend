@@ -86,9 +86,11 @@ jobs:
       with:
         credentials_json: '${{ secrets.GCP_CREDENTIALS_STAGE }}'
 
-    # --- ADICIONE ESTE PASSO PARA INSTALAR O PLUGIN DE AUTENTICAÇÃO ---
+    # --- CORREÇÃO: Usando apt-get conforme sugerido pelo erro ---
     - name: Install gke-gcloud-auth-plugin
-      run: gcloud components install gke-gcloud-auth-plugin --quiet
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
 
     - name: Get GKE credentials
       run: gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} --region ${{ env.GCP_REGION }}
